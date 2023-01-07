@@ -1,0 +1,24 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: latest
+    commands:
+      - apt-get update
+      - n 16
+      - npm install -g serverless
+      - npm install
+  # pre_build:
+  #   commands:
+  #     #put tests here
+  #     - npm test
+  build:
+    commands:
+      # NPX used to keep version of serverless
+      - echo "----- Running Back-End Build ------"
+      - cd ${CODEBUILD_SRC_DIR}/back-end
+      - npm install
+      - npx serverless deploy --region us-west-2
+  post_build:
+    commands:
+      # - npm run migrate-${CURRENT_STAGE}

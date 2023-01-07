@@ -1,0 +1,39 @@
+{
+  "name": "<REPLACE_PROJECT_NAME>",
+  "version": "1.0.1",
+  "main": "src/handler.js",
+  "license": "MIT",
+  "scripts": {
+    "deploy:env": "sls deploy --stage $NODE_ENV",
+    "deploy": "export NODE_ENV=dev && npm run deploy:env",
+    "deploy:production": "export NODE_ENV=production && npm run deploy:env",
+    "deploy:stage": "export NODE_ENV=stage && npm run deploy:env",
+    "lint": "eslint ./src ./config --ext js --ext json --no-ignore --fix",
+    "serve": "serverless offline start",
+    "serve:watch": "nodemon -e js,jsx -x serverless offline start --stage local",
+    "build": "serverless webpack"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.19.0",
+    "@babel/eslint-parser": "^7.18.9",
+    "@babel/preset-env": "^7.19.0",
+    "babel-loader": "^8.2.5",
+    "eslint": "^8.23.1",
+    "jest": "^29.0.3",
+    "nodemon": "^2.0.19",
+    "npx": "^10.2.2",
+    "serverless": "^3.22.0",
+    "serverless-plugin-resource-tagging": "^1.2.0",
+    "serverless-webpack": "^5.9.1",
+    "webpack": "^5.74.0",
+    "webpack-node-externals": "^3.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.170.0",
+    "@aws-sdk/client-ssm": "^3.170.0",
+    "axios": "^0.27.2",
+    "debug": "^4.3.4",
+    "jsonwebtoken": "^8.5.1",
+    "jwt-decode": "^3.1.2"
+  }
+}

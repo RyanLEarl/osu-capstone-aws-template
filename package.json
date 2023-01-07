@@ -1,0 +1,21 @@
+{
+  "name": "<REPLACE_PROJECT_NAME>",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build-cicd": "bash ./pipeline/run-cicd.sh $npm_package_name create $npm_config_stage",
+    "update-cicd": "bash ./pipeline/run-cicd.sh $npm_package_name update $npm_config_stage",
+    "build-cicd-windows": "bash ./pipeline/run-cicd.sh %npm_package_name% create %npm_config_stage%",
+    "update-cicd-windows": "bash ./pipeline/run-cicd.sh %npm_package_name% update %npm_config_stage%"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "devDependencies": {
+    "serverless-webpack": "^5.10.0",
+    "webpack-node-externals": "^3.0.0"
+  },
+  "dependencies": {
+    "serverless-plugin-resource-tagging": "^1.2.0"
+  }
+}

@@ -1,0 +1,440 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: github-codepipeline
+
+Parameters:
+  GitHubRepo:
+    Type: String
+    Default: <REPLACE_PROJECT_NAME>
+  GitHubBranch:
+    Type: String
+    Default: <REPLACE_BRANCH_NAME>
+
+Resources:
+  CloudFormationTrustRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - iam:CreateRole
+                  - iam:AttachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:PassRole
+                  - iam:DetachRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:GetRole
+                  - iam:DeleteRolePolicy
+                  - iam:UpdateRoleDescription
+                  - iam:ListRoles
+                  - iam:DeleteRole
+                  - iam:GetRolePolicy
+                  - iam:CreateInstanceProfile
+                  - iam:AddRoleToInstanceProfile
+                  - iam:DeleteInstanceProfile
+                  - iam:GetInstanceProfile
+                  - iam:ListInstanceProfiles
+                  - iam:ListInstanceProfilesForRole
+                  - iam:RemoveRoleFromInstanceProfile
+                Effect: Allow
+                Resource:
+                  - !Sub
+                    - "arn:aws:iam::*:role/${stackname}*"
+                    - { stackname: !Ref "AWS::StackName" }
+                  - !Sub
+                    - "arn:aws:iam::*:instance-profile/${stackname}*"
+                    - { stackname: !Ref "AWS::StackName" }
+              - Action:
+                  - ssm:GetParameters
+                Effect: Allow
+                Resource: "*"
+          PolicyName: !Join
+            - "-"
+            - - !Ref "AWS::StackName"
+              - CloudFormationRolePolicy
+      RoleName: !Join
+        - "-"
+        - - !Ref "AWS::StackName"
+          - CloudFormation
+
+  CodePipelineTrustRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Sid: 1
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StopBuild
+                Effect: Allow
+                Resource:
+                  - !GetAtt CodeBuildProject.Arn
+              - Action:
+                  - iam:PassRole
+                Effect: Allow
+                Resource:
+                  - !GetAtt
+                    - CloudFormationTrustRole
+                    - Arn
+          PolicyName: !Join
+            - "-"
+            - - !Ref "AWS::StackName"
+              - CodePipelineRolePolicy
+      RoleName: !Join
+        - "-"
+        - - !Ref "AWS::StackName"
+          - CodePipeline
+
+  Pipeline:
+    DependsOn:
+      - CodePipelineTrustRole
+      - CodeBuildProject
+      - CloudFormationTrustRole
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: codepipeline-us-west-2-337425671206
+      RestartExecutionOnUpdate: true
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: Source
+              InputArtifacts: []
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: "1"
+                Provider: GitHub
+              OutputArtifacts:
+                - Name: !Join ["-", [!Ref "AWS::StackName", SourceArtifact]]
+              Configuration:
+                Owner: "{{resolve:secretsmanager:<REPLACE_SECRET_NAME>:SecretString:<REPLACE_SECRET_KEY>}}"
+                Repo: !Ref GitHubRepo
+                Branch: !Ref GitHubBranch
+                PollForSourceChanges: false
+                OAuthToken: "{{resolve:secretsmanager:<REPLACE_SECRET_NAME>:SecretString:<REPLACE_SECRET_KEY>}}"
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName: !Ref "AWS::StackName"
+              InputArtifacts:
+                - Name: !Join
+                    - "-"
+                    - - !Ref "AWS::StackName"
+                      - SourceArtifact
+              OutputArtifacts:
+                - Name: !Join
+                    - "-"
+                    - - !Ref "AWS::StackName"
+                      - BuildArtifact
+              RunOrder: 1
+
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+      Path: /
+      RoleName: !Join
+        - "-"
+        - - !Ref "AWS::StackName"
+          - CodeBuild
+
+  CodeBuildPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - cloudwatch:*
+              - logs:*
+              - codepipeline:*
+              - codebuild:*
+              - s3:*
+              - sqs:*
+              - apigateway:CreateApiKey
+              - apigateway:CreateAuthorizer
+              - apigateway:CreateDeployment
+              - apigateway:CreateResource
+              - apigateway:CreateRestApi
+              - apigateway:CreateUsagePlan
+              - apigateway:CreateUsagePlanKey
+              - apigateway:GetApiKey
+              - apigateway:GetResources
+              - apigateway:GetUsagePlanKey
+              - apigateway:PutIntegration
+              - apigateway:PutIntegrationResponse
+              - apigateway:PutMethod
+              - apigateway:PutMethodResponse
+              - apigateway:POST
+              - apigateway:GET
+              - apigateway:PUT
+              - apigateway:DELETE
+              - apigateway:PATCH
+              - apigateway:UpdateRestApiPolicy
+              - cloudformation:CreateChangeSet
+              - cloudformation:DescribeChangeSet
+              - cloudformation:DeleteChangeSet
+              - cloudformation:ExecuteChangeSet
+              - cloudformation:CreateStack
+              - cloudformation:UpdateStack
+              - cloudformation:DescribeStackEvents
+              - cloudformation:DescribeStacks
+              - cloudformation:DescribeStackResource
+              - cloudformation:DescribeStackResources
+              - cloudformation:ValidateTemplate
+              - cloudfront:CreateCloudFrontOriginAccessIdentity
+              - cloudfront:CreateDistribution
+              - cloudfront:CreateDistributionWithTags
+              - cloudfront:GetCloudFrontOriginAccessIdentity
+              - cloudfront:GetCloudFrontOriginAccessIdentityConfig
+              - cloudfront:GetDistribution
+              - cloudfront:CreateInvalidation
+              - cloudfront:TagResource
+              - cloudfront:UntagResource
+              - cloudfront:UpdateDistribution
+              - cloudfront:DeleteCloudFrontOriginAccessIdentity
+              - cloudformation:ListStackResources
+              - cognito-identity:CreateIdentityPool
+              - cognito-identity:SetIdentityPoolRoles
+              - cognito-identity:DeleteIdentityPool
+              - cognito-idp:CreateUserPool
+              - cognito-idp:CreateUserPoolClient
+              - cognito-idp:CreateUserPoolDomain
+              - cognito-idp:DeleteUserPool
+              - cognito-idp:DeleteUserPoolClient
+              - cognito-idp:DeleteUserPoolDomain
+              - dynamodb:CreateTable
+              - dynamodb:DescribeTable
+              - dynamodb:DescribeTimeToLive
+              - dynamodb:ListTagsOfResource
+              - dynamodb:TagResource
+              - dynamodb:UnTagResource
+              - dynamodb:UpdateTimeToLive
+              - ec2:DescribeSubnets
+              - ec2:DescribeVpcs
+              - ec2:CreateNetworkInterface
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DeleteNetworkInterface
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeDhcpOptions
+              - ec2:CreateNetworkInterfacePermission
+              - ec2:AuthorizeSecurityGroupEgress
+              - ec2:AuthorizeSecurityGroupIngress
+              - ec2:RevokeSecurityGroupEgress
+              - ec2:RevokeSecurityGroupIngress
+              - ec2:UpdateSecurityGroupRuleDescriptionsEgress
+              - ec2:UpdateSecurityGroupRuleDescriptionsIngress
+              - ec2:CreateSecurityGroup
+              - ec2:DeleteSecurityGroup
+              - ec2:createTags
+              - ec2:deleteTags
+              - events:DescribeRule
+              - events:PutRule
+              - events:PutTargets
+              - iam:AttachRolePolicy
+              - iam:CreateRole
+              - iam:GetRole
+              - iam:GetRolePolicy
+              - iam:PutRolePolicy
+              - iam:DeleteRolePolicy
+              - iam:TagRole
+              - iam:UnTagRole
+              - iam:PassRole
+              - iam:DeleteRole
+              - iam:DetachRolePolicy
+              - identity:DeleteIdentityPool
+              - kms:CreateGrant
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - lambda:AddPermission
+              - lambda:CreateEventSourceMapping
+              - lambda:CreateFunction
+              - lambda:DeleteEventSourceMapping
+              - lambda:GetEventSourceMapping
+              - lambda:GetFunction
+              - lambda:GetFunctionConfiguration
+              - lambda:UpdateFunctionCode
+              - lambda:UpdateFunctionConfiguration
+              - lambda:GetFunction
+              - lambda:ListVersionsByFunction
+              - lambda:ListTags
+              - lambda:PublishVersion
+              - lambda:TagResource
+              - lambda:UntagResource
+              - lambda:DeleteFunction
+              - lambda:RemovePermission
+              - lambda:InvokeFunction
+              - lambda:EnableReplication*
+              - monitoring:PutMetricAlarm
+              - mobiletargeting:CreateApp
+              - mobiletargeting:UpdateSmsChannel
+              - secretsmanager:GetSecretValue
+              - secretsmanager:CreateSecret
+              - secretsmanager:GetRandomPassword
+              - secretsmanager:TagResource
+              - secretsmanager:UntagResource
+              - states:TagResource
+              - states:UntagResource
+              - states:CreateStateMachine
+              - states:DeleteStateMachine
+              - sts:GetCallerIdentity
+              - ssm:GetParameter
+              - ssm:DeleteParameter
+              - ssm:PutParameter
+              - ssm:GetParameters
+              - ssm:GetParametersByPath
+              - ssm:AddTagsToResource
+              - ssm:RemoveTagsFromResource
+              - rds:CreateDBCluster
+              - rds:DeleteDBCluster
+              - rds:DescribeDBClusters
+              - rds:ModifyDBCluster
+              - rds:CreateDBClusterEndpoint
+              - rds:DeleteDBClusterEndpoint
+              - rds:DescribeDBClusterEndpoints
+              - rds:CreateDBSubnetGroup
+              - rds:DeleteDBSubnetGroup
+              - rds:DescribeDBSubnetGroups
+              - rds:ModifyDBSubnetGroup
+              - rds:CreateDBClusterSnapshot
+              - sns:CreateTopic
+              - sns:GetTopicAttributes
+              - sns:Subscribe
+              - sns:DeleteTopic
+              - sns:ListSubscriptionsByTopic
+              - sns:ListTopics
+              - sns:SetSubscriptionAttributes
+              - sqs:CreateQueue
+              - sqs:SetQueueAttributes
+              - sqs:GetQueueAttributes
+              - sqs:TagQueue
+              - sqs:UntagQueue
+              - sqs:DeleteQueue
+              - states:CreateStateMachine
+              - states:DeleteStateMachine
+              - sts:GetCallerIdentity
+            Effect: Allow
+            Resource: "*"
+      PolicyName: !Join
+        - "-"
+        - - !Ref "AWS::StackName"
+          - CodeBuildPolicy
+      Roles:
+        - !Ref "CodeBuildRole"
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    DependsOn:
+      - CodeBuildPolicy
+    Properties:
+      Artifacts:
+        Name: "build-output.zip"
+        NamespaceType: BUILD_ID
+        Packaging: ZIP
+        Path: "codebuild"
+        ArtifactIdentifier: !Join ["-", [!Ref "AWS::StackName", SourceArtifact]]
+        Type: CODEPIPELINE
+      Description: !Join
+        - ""
+        - - "CodeBuild Project for "
+          - !Ref "AWS::StackName"
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:6.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: CURRENT_STAGE
+            Type: PLAINTEXT
+            Value: !Ref GitHubBranch
+      Name: !Ref "AWS::StackName"
+      ServiceRole: !Ref "CodeBuildRole"
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: "buildspecs/buildspec.yml"
+
+  GithubWebhook:
+    Type: "AWS::CodePipeline::Webhook"
+    Properties:
+      Authentication: GITHUB_HMAC
+      AuthenticationConfiguration:
+        SecretToken: "{{resolve:secretsmanager:githubPersonalAccess:SecretString:gitHubOAuthToken}}"
+      RegisterWithThirdParty: true
+      Filters:
+        - JsonPath: "$.ref"
+          MatchEquals: refs/heads/{Branch}
+      TargetPipeline: !Ref Pipeline
+      TargetAction: Source
+      TargetPipelineVersion: !GetAtt Pipeline.Version
+
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub codepipeline-${AWS::StackName}
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: ["sts:AssumeRole"]
+            Effect: Allow
+            Principal:
+              Service: [codepipeline.amazonaws.com]
+        Version: "2012-10-17"
+      Path: /
+
+  CodePipelinePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: CodePipelineFactoryRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
+          - Effect: "Allow"
+            Action:
+              - iam:PassRole
+              - codebuild:StartBuild
+              - codebuild:BatchGetBuilds
+              - codebuild:StopBuild
+              - codebuild:UpdateProject
+              - s3:*
+              - sns:Publish
+            Resource: "*"
+      Roles:
+        - !Ref CodePipelineRole

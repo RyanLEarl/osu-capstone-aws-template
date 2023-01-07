@@ -1,0 +1,50 @@
+service: <REPLACE_PROJECT_NAME>
+
+frameworkVersion: '3'
+
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    packager: "npm"
+    includeModules: true
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  region: us-west-2
+  
+  stackTags:
+    Created By: <REPLACE_NAME>
+  logs:
+    restApi:
+      format: >-
+        { "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", 
+        "userId":"$context.authorizer.userId", "user":"$context.authorizer.user", 
+        "store":"$context.authorizer.storeNumber", "requestTime":"$context.requestTime", 
+        "httpMethod":"$context.httpMethod", "resourcePath":"$context.resourcePath", 
+        "status":"$context.status", "protocol":"$context.protocol", "responseLength":"$context.responseLength" }
+  environment:
+    region: ${self:provider.region}
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "lambda:InvokeFunction"
+      Resource: !Sub arn:aws:lambda:${self:provider.region}:${AWS::AccountId}:function:${self:service}-*
+    - Effect: "Allow"
+      Action:
+        - "secretsmanager:GetSecretValue"
+      Resource:
+        - !Sub arn:aws:secretsmanager:${self:provider.region}:${AWS::AccountId}:secret:${self:service}-*
+
+functions:
+  - ${file(cloudformation/functions.yml)}
+
+plugins:
+  - serverless-webpack
+  - serverless-plugin-resource-tagging
+
+package:
+  individually: true
+  exclude:
+    - buildspecs/**
