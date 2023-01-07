@@ -5,6 +5,38 @@
 1. In the Github page for the template, press the `Use this template` button. Select the visibility level and press `create repository from template`.
 2. Now Clone it to your local machine
 
+## Github OAuth Token setup
+
+1. In the upper-right corner of any page, click your profile photo, then click Settings.
+2. In the left sidebar, click  Developer settings.
+3. In the left sidebar, under Personal access tokens, click Tokens (classic).
+4. Click Generate new token (classic).
+5. Optionally, under Token name, enter a name for the token.
+6. Under Expiration, select an expiration for the token. (If you do not want to have to go through this process again, I recommend having no expiration date.)
+7. Select the scopes you'd like to grant this token. To use your token to access repositories from the command line, select repo. A token with no assigned scopes can only access public information. I chose to give the token full permission for all scopes to remove any chance for future issues. For more information, see ["Available scopes"](https://docs.github.com/en/enterprise-server@3.4/apps/building-oauth-apps/scopes-for-oauth-apps#available-scopes).
+8. Click Generate token.
+9. Copy the token for safekeeping until you are able to create a secret in AWS Secrets Manager to house it. 
+
+## AWS SecretsManager Setup
+
+1. Because we are storing sensitive information in Secrets Manager, please respect your fellow classmates and do not attempt to view their secret. Whenever a secret is viewed the last retrieved date will update, so if you have not accessed your token and the date has changed, you may want to revoke that token's access and create a new one. 
+2. Navigate to the [AWS login page](http://login.oregonstate.edu/apps/aws)
+3. Select the role that you will be housing your project in. I believe for most that will be Shibboleth-aws-capstone-admin
+4. Click Sign In
+5. In the search bar type in Secrets Manager
+6. Click on Secrets Manager
+7. Click on the orange "Store a new secret" button
+8. Underneath "Secret type" select Other type of secret
+9. You will be creating two separate keys: gitHubOwner and gitHubOAuthToken
+![SecretsManagerKeys.png](./readmeResources/SecretsManagerKeys.png)
+10. The value for gitHubOwner should be your github profile name
+11. The value for gitHubOAuthToken should be the token you copied at the end othe Github OAuth Token setup
+12. Click the orange "Next" button in the bottom right corner
+13. For "Secret name" put <REPLACE_PROJECT_NAME>-githubPersonalAccess
+14. A description is not required, but you may add one if you want
+15. Click the orange "Next" button in the bottom right corner for step 2 & 3
+16. Check to make sure everything looks correct on the Review page and click on the orange "Store" button when you are ready to create your secret
+
 ## Full Configuration Instructions
 
 Note: Each service folder has its own README file for specific setup directions and notes.  

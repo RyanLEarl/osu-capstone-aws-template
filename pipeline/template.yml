@@ -128,11 +128,11 @@ Resources:
               OutputArtifacts:
                 - Name: !Join ["-", [!Ref "AWS::StackName", SourceArtifact]]
               Configuration:
-                Owner: "{{resolve:secretsmanager:<REPLACE_SECRET_NAME>:SecretString:<REPLACE_SECRET_KEY>}}"
+                Owner: "{{resolve:secretsmanager:<REPLACE_PROJECT_NAME>-githubPersonalAccess:SecretString:gitHubOwner}}"
                 Repo: !Ref GitHubRepo
                 Branch: !Ref GitHubBranch
                 PollForSourceChanges: false
-                OAuthToken: "{{resolve:secretsmanager:<REPLACE_SECRET_NAME>:SecretString:<REPLACE_SECRET_KEY>}}"
+                OAuthToken: "{{resolve:secretsmanager:<REPLACE_PROJECT_NAME>-githubPersonalAccess:SecretString:gitHubOAuthToken}}"
               RunOrder: 1
         - Name: Build
           Actions:
