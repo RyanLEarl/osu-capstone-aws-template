@@ -128,11 +128,19 @@ Resources:
               OutputArtifacts:
                 - Name: !Join ["-", [!Ref "AWS::StackName", SourceArtifact]]
               Configuration:
-                Owner: "{{resolve:secretsmanager:<REPLACE_PROJECT_NAME>-githubPersonalAccess:SecretString:gitHubOwner}}"
+                Owner:  !Join 
+                  - ''
+                  - - '{{resolve:secretsmanager:'
+                    - !Ref GitHubRepo
+                    - '-githubPersonalAccess:SecretString:gitHubOwner}}'
                 Repo: !Ref GitHubRepo
                 Branch: !Ref GitHubBranch
                 PollForSourceChanges: false
-                OAuthToken: "{{resolve:secretsmanager:<REPLACE_PROJECT_NAME>-githubPersonalAccess:SecretString:gitHubOAuthToken}}"
+                OAuthToken:  !Join 
+                  - ''
+                  - - '{{resolve:secretsmanager:'
+                    - !Ref GitHubRepo
+                    - '-githubPersonalAccess:SecretString:gitHubOAuthToken}}'
               RunOrder: 1
         - Name: Build
           Actions:
@@ -390,7 +398,11 @@ Resources:
     Properties:
       Authentication: GITHUB_HMAC
       AuthenticationConfiguration:
-        SecretToken: "{{resolve:secretsmanager:githubPersonalAccess:SecretString:gitHubOAuthToken}}"
+        SecretToken: !Join 
+          - ''
+          - - '{{resolve:secretsmanager:'
+            - !Ref GitHubRepo
+            - '-githubPersonalAccess:SecretString:gitHubOAuthToken}}'
       RegisterWithThirdParty: true
       Filters:
         - JsonPath: "$.ref"
