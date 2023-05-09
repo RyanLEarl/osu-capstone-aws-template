@@ -1,20 +1,3 @@
 test:
   handler: src/functions/test.handler
   timeout: 30
-  events:
-    - http:
-        path: test
-        method: get
-        cors:
-          origin: ${self:custom.acceptedOrigins}
-          headers:
-            - Content-Type
-            - X-Amz-Date
-            - Authorization
-            - X-Amz-Security-Token
-            - X-Amz-User-Agent
-          allowCredentials: false
-        authorizer:
-          name: lambdaAuthorizer
-          identitySource: method.request.header.Authorization
-          type: request
