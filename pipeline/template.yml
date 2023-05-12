@@ -112,7 +112,7 @@ Resources:
     Properties:
       ArtifactStore:
         Type: S3
-        Location: codepipeline-us-west-2-337425671206
+        Location: !Sub codepipeline-${AWS::Region}-${AWS::AccountId}
       RestartExecutionOnUpdate: true
       RoleArn: !GetAtt CodePipelineRole.Arn
       Stages:
