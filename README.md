@@ -59,10 +59,10 @@ With proper setup, the CI/CD process should be automated. This process requires 
 ### Full Deploy
 
 You can deploy the serverless project by merging changes into your CI/CD targeted github branch or manually in your cli.<br>
-`sls deploy --aws-profile <REPLACE_AWS_PROFILE> --stage <REPLACE_STAGE>`<br>
+`serverless deploy --aws-profile <REPLACE_AWS_PROFILE> --stage <REPLACE_STAGE>`<br>
 **NOTE:** you will need your AWS_PROFILE that you setup in the CI/CD Pipeline instructions.
 
 ### Partial Deploy
 
 At times during development you may wish to deploy changes to just one lambda. To do this run the following:<br>
-`sls deploy function --aws-profile <REPLACE_AWS_PROFILE> --stage <REPLACE_STAGE> -f <REPLACE_FUNCTION_NAME>`<br>
+`serverless deploy function --aws-profile <REPLACE_AWS_PROFILE> --stage <REPLACE_STAGE> -f <REPLACE_FUNCTION_NAME>`<br>
